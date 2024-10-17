@@ -1,16 +1,11 @@
 package com.unitedinternet.filestore.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
-import java.sql.Date;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-@Table(name = "files")
+@Table(name = "files", indexes = @Index(columnList = "fullPath", name = "fullPathIndex", unique = true))
 @Entity
 public class File {
 
@@ -22,19 +17,22 @@ public class File {
 
     private String name;
 
+    private String fullPath;
+
     private String systemPath;
 
     private LocalDateTime createdDate;
 
     private LocalDateTime updatedDate;
 
-    public File(String path, String name, String systemPath, LocalDateTime createdDate, LocalDateTime updatedDate) {
+    public File(String path, String name, String fullPath, String systemPath, LocalDateTime createdDate, LocalDateTime updatedDate) {
         this.path = path;
         this.name = name;
+        this.fullPath = fullPath;
         this.systemPath = systemPath;
         this.createdDate = createdDate;
         this.updatedDate = updatedDate;
-    }
+     }
 
     public Long getId() {
         return id;
@@ -58,6 +56,14 @@ public class File {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getFullPath() {
+        return fullPath;
+    }
+
+    public void setFullPath(String fullPath) {
+        this.fullPath = fullPath;
     }
 
     public String getSystemPath() {
@@ -89,7 +95,7 @@ public class File {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         File file = (File) o;
-        return Objects.equals(id, file.id) && Objects.equals(path, file.path) && Objects.equals(name, file.name) && Objects.equals(systemPath, file.systemPath) && Objects.equals(createdDate, file.createdDate) && Objects.equals(updatedDate, file.updatedDate);
+        return Objects.equals(id, file.id) && Objects.equals(path, file.path) && Objects.equals(name, file.name) && Objects.equals(fullPath, file.fullPath) && Objects.equals(systemPath, file.systemPath) && Objects.equals(createdDate, file.createdDate) && Objects.equals(updatedDate, file.updatedDate);
     }
 
     @Override
@@ -102,6 +108,8 @@ public class File {
         private String path;
 
         private String name;
+
+        private String fullPath;
 
         private String systemPath;
 
@@ -116,6 +124,11 @@ public class File {
 
         public Builder name (String name) {
             this.name = name;
+            return this;
+        }
+
+        public Builder fullPath (String fullPath) {
+            this.fullPath = fullPath;
             return this;
         }
 
@@ -135,7 +148,7 @@ public class File {
         }
 
         public File build() {
-            return new File(path, name, systemPath, createdDate, updatedDate);
+            return new File(path, name, fullPath, systemPath, createdDate, updatedDate);
         }
 
     }
