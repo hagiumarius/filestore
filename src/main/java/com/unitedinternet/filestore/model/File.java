@@ -19,17 +19,21 @@ public class File {
 
     private String fullPath;
 
-    private String systemPath;
+    @Enumerated(EnumType.STRING)
+    private AccessType accessType;
 
     private LocalDateTime createdDate;
 
     private LocalDateTime updatedDate;
 
-    public File(String path, String name, String fullPath, String systemPath, LocalDateTime createdDate, LocalDateTime updatedDate) {
+    public File() {
+    }
+
+    public File(String path, String name, String fullPath, AccessType accessType, LocalDateTime createdDate, LocalDateTime updatedDate) {
         this.path = path;
         this.name = name;
         this.fullPath = fullPath;
-        this.systemPath = systemPath;
+        this.accessType = accessType;
         this.createdDate = createdDate;
         this.updatedDate = updatedDate;
      }
@@ -66,12 +70,12 @@ public class File {
         this.fullPath = fullPath;
     }
 
-    public String getSystemPath() {
-        return systemPath;
+    public AccessType getAccessType() {
+        return accessType;
     }
 
-    public void setSystemPath(String systemPath) {
-        this.systemPath = systemPath;
+    public void setAccessType(AccessType accessType) {
+        this.accessType = accessType;
     }
 
     public LocalDateTime getCreatedDate() {
@@ -95,7 +99,7 @@ public class File {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         File file = (File) o;
-        return Objects.equals(id, file.id) && Objects.equals(path, file.path) && Objects.equals(name, file.name) && Objects.equals(fullPath, file.fullPath) && Objects.equals(systemPath, file.systemPath) && Objects.equals(createdDate, file.createdDate) && Objects.equals(updatedDate, file.updatedDate);
+        return Objects.equals(id, file.id) && Objects.equals(path, file.path) && Objects.equals(name, file.name) && Objects.equals(fullPath, file.fullPath) && Objects.equals(accessType, file.accessType) && Objects.equals(createdDate, file.createdDate) && Objects.equals(updatedDate, file.updatedDate);
     }
 
     @Override
@@ -111,7 +115,7 @@ public class File {
 
         private String fullPath;
 
-        private String systemPath;
+        private AccessType accessType;
 
         private LocalDateTime createdDate;
 
@@ -132,8 +136,8 @@ public class File {
             return this;
         }
 
-        public Builder systemPath (String systemPath) {
-            this.systemPath = systemPath;
+        public Builder accessType (AccessType accessType) {
+            this.accessType = accessType;
             return this;
         }
 
@@ -148,7 +152,7 @@ public class File {
         }
 
         public File build() {
-            return new File(path, name, fullPath, systemPath, createdDate, updatedDate);
+            return new File(path, name, fullPath, accessType, createdDate, updatedDate);
         }
 
     }

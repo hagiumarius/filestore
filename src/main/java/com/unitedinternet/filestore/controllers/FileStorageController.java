@@ -1,15 +1,18 @@
 package com.unitedinternet.filestore.controllers;
 
+import com.unitedinternet.filestore.exceptions.GenericException;
+import com.unitedinternet.filestore.exceptions.RecordNotFoundException;
 import com.unitedinternet.filestore.exceptions.ValidationException;
+import com.unitedinternet.filestore.model.AccessType;
 import com.unitedinternet.filestore.model.File;
 import com.unitedinternet.filestore.repository.FileRepository;
-
 import com.unitedinternet.filestore.service.FileStorageResolver;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotEmpty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +21,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/files")
@@ -44,19 +50,89 @@ public class FileStorageController {
         return new ResponseEntity<>("test", HttpStatus.OK);
     }
 
+    @GetMapping(value="/download/**")
+    public ResponseEntity<Resource> getFile(HttpServletRequest request) {
+        logger.info("downloading file");
+        String urlPath = request.getRequestURL().toString().split("/download")[1];
+        String fullPath = resolveFullPath(urlPath);
+        List<File> files = fileRepository.findByFullPath(fullPath);
+        Resource resource = null;
+        if (files.isEmpty()) {//file not found
+            throw new RecordNotFoundException("Record not found");
+        } else {
+            File found = files.get(0);
+            resource = fileStorageResolver.retrieveFile(fullPath, found.getAccessType());
+        }
+        return new ResponseEntity<>(resource, HttpStatus.OK);
+    }
+
+    @GetMapping(value="/{id}")
+    public ResponseEntity<Resource> getFile(@PathVariable Long id) {
+        logger.info("Trying to get file for id: {}", id);
+
+        Optional<File> optionalFile = fileRepository.findById(id);
+        if (optionalFile.isEmpty()) {
+            throw new RecordNotFoundException("Record not found");
+        } else {
+            File found = optionalFile.get();
+            Resource resource = fileStorageResolver.retrieveFile(found.getFullPath(), found.getAccessType());
+            return new ResponseEntity<>(resource, HttpStatus.OK);
+        }
+    }
+
     @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<FileStoreResponse> createFile(@RequestParam("file") MultipartFile requestFile, @RequestParam("path") @NotEmpty String path) {
         logger.info("Trying to upload for path: {}", path);
         validateUpload(path, requestFile);
         try {
-            String fullPath = fileStorageResolver.storeFile(path, requestFile);
-            File file = new File.Builder().path(path).name(requestFile.getOriginalFilename()).createdDate(LocalDateTime.now()).fullPath(fullPath).build();
-            fileRepository.save(file);
-            return ResponseEntity.status(HttpStatus.OK).body(new FileStoreResponse(HttpStatus.CREATED.value(),"File uploaded successfully: " + requestFile.getOriginalFilename()));
+            String fullPath = resolveFullPath(path, requestFile.getOriginalFilename());
+            fileStorageResolver.storeFile(fullPath, requestFile);
+            File file = new File.Builder().path(path).name(requestFile.getOriginalFilename()).createdDate(LocalDateTime.now()).fullPath(fullPath).accessType(AccessType.DEFAULT).build();
+            file = fileRepository.save(file);
+            return ResponseEntity.status(HttpStatus.CREATED).body(new FileStoreResponse(HttpStatus.CREATED.value(),"File uploaded successfully: " + requestFile.getOriginalFilename(), Map.of("id", file.getId().toString())));
         } catch (IOException e) {
+            logger.error("Exception while storing file",e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new FileStoreResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(),"Could not upload the file: " + e.getMessage()));
         }
 
+    }
+
+    @PutMapping(value="/{id}", consumes = "multipart/form-data")
+    public ResponseEntity<FileStoreResponse> updateFile(@RequestParam("file") MultipartFile requestFile, @PathVariable Long id) {
+        logger.info("Trying to update for id: {}", id);
+        try {
+            Optional<File> optionalFile = fileRepository.findById(id);
+            if (optionalFile.isEmpty()) {
+                throw new RecordNotFoundException("Record not found");
+            } else {
+                File found = optionalFile.get();
+                if (!requestFile.getOriginalFilename().equals(found.getName())) {
+                    throw new ValidationException("Update cannot change file name");
+                }
+                fileStorageResolver.storeFile(found.getFullPath(), requestFile);
+                found.setUpdatedDate(LocalDateTime.now());
+                fileRepository.save(found);
+                return ResponseEntity.status(HttpStatus.OK).body(new FileStoreResponse(HttpStatus.OK.value(),"File uploaded successfully: " + requestFile.getOriginalFilename(),Map.of("id", found.getId().toString()) ));
+            }
+        } catch (IOException e) {
+            logger.error("Exception while storing file",e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new FileStoreResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(),"Could not upload the file: " + e.getMessage()));
+        }
+
+    }
+
+    @DeleteMapping(value="/{id}")
+    public ResponseEntity<FileStoreResponse> deleteFile(@PathVariable Long id) {
+        logger.info("Trying to delete for id: {}", id);
+
+        Optional<File> optionalFile = fileRepository.findById(id);
+        if (optionalFile.isEmpty()) {
+            throw new RecordNotFoundException("Record not found");
+        } else {
+            File found = optionalFile.get();
+            fileRepository.deleteById(found.getId());
+            return ResponseEntity.status(HttpStatus.OK).body(new FileStoreResponse(HttpStatus.OK.value(),"File deleted successfully",Map.of("id", found.getId().toString()) ));
+        }
     }
 
     private void validateUpload(String path, MultipartFile requestFile) {
@@ -72,6 +148,23 @@ public class FileStorageController {
         if (wrongPathSegment) {
             throw new ValidationException("Wrong path segment");
         }
+    }
+
+    private String resolveFullPath(String path, String fileName) {
+        StringBuilder storagefileName = new StringBuilder();
+        if (!path.startsWith("/")) {
+            storagefileName.append("+");
+        }
+        storagefileName.append(path.replace("/","+"));
+        if (!path.endsWith("/")) {
+            storagefileName.append("+");
+        }
+        storagefileName.append(fileName);
+        return storagefileName.toString();
+    }
+
+    private String resolveFullPath(String pathSegments) {
+        return pathSegments.replace("/","+");
     }
 
 
