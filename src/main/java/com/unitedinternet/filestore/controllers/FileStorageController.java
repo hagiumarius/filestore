@@ -53,15 +53,14 @@ public class FileStorageController {
     @GetMapping(value="/**")
     public ResponseEntity<Resource> getFile(HttpServletRequest request) {
         logger.info("downloading file");
-        String urlPath = request.getRequestURL().toString().split("/files")[1];
-        String fullPath = resolveFullPath(urlPath);
-        List<File> files = fileRepository.findByFullPath(fullPath);
+        String urlFilePath = request.getRequestURL().toString().split("/files")[1];
+        List<File> files = fileRepository.findByFullPath(urlFilePath);
         Resource resource = null;
         if (files.isEmpty()) {//file not found
             throw new RecordNotFoundException("Record not found");
         } else {
             File found = files.get(0);
-            resource = fileStorageResolver.retrieveFile(fullPath, found.getAccessType());
+            resource = fileStorageResolver.retrieveFile(urlFilePath, found.getAccessType());
         }
         return new ResponseEntity<>(resource, HttpStatus.OK);
     }
@@ -99,11 +98,11 @@ public class FileStorageController {
 
     @PutMapping(value="/**", consumes = "multipart/form-data")
     public ResponseEntity<FileStoreResponse> updateFile(@RequestParam("file") MultipartFile requestFile, HttpServletRequest request) {
-        String urlPath = request.getRequestURL().toString().split("/files")[1];
-        String fullPath = resolveFullPath(urlPath);
-        logger.info("Trying to update for id: {}", fullPath);
+        String urlFilePath = request.getRequestURL().toString().split("/files")[1];
+
+        logger.info("Trying to update for id: {}", urlFilePath);
         try {
-            List<File> files = fileRepository.findByFullPath(fullPath);
+            List<File> files = fileRepository.findByFullPath(urlFilePath);
             if (files.isEmpty()) {
                 throw new RecordNotFoundException("Record not found");
             } else {
@@ -125,11 +124,10 @@ public class FileStorageController {
 
     @DeleteMapping(value="/**")
     public ResponseEntity<FileStoreResponse> deleteFile(HttpServletRequest request) {
-        String urlPath = request.getRequestURL().toString().split("/files")[1];
-        String fullPath = resolveFullPath(urlPath);
-        logger.info("Trying to delete for id: {}", fullPath);
+        String urlFilePath = request.getRequestURL().toString().split("/files")[1];
+        logger.info("Trying to delete for id: {}", urlFilePath);
 
-        List<File> files = fileRepository.findByFullPath(fullPath);
+        List<File> files = fileRepository.findByFullPath(urlFilePath);
         if (files.isEmpty()) {
             throw new RecordNotFoundException("Record not found");
         } else {
@@ -157,19 +155,14 @@ public class FileStorageController {
     private String resolveFullPath(String path, String fileName) {
         StringBuilder storagefileName = new StringBuilder();
         if (!path.startsWith("/")) {
-            storagefileName.append("+");
+            storagefileName.append("/");
         }
-        storagefileName.append(path.replace("/","+"));
+        storagefileName.append(path);
         if (!path.endsWith("/")) {
-            storagefileName.append("+");
+            storagefileName.append("/");
         }
         storagefileName.append(fileName);
         return storagefileName.toString();
     }
-
-    private String resolveFullPath(String pathSegments) {
-        return pathSegments.replace("/","+");
-    }
-
 
 }

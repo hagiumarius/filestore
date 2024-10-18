@@ -29,7 +29,7 @@ public class FileStorageResolver {
 
     public void storeFile (String fullPath, MultipartFile requestFile) throws IOException {
         logger.debug("Storing file {}", fullPath);
-        requestFile.transferTo(new java.io.File(defaultSystemPath + fullPath));
+        requestFile.transferTo(new java.io.File(defaultSystemPath + fullPath.replace("/","+")));
     }
 
     public Resource retrieveFile (String fullPath, AccessType accessType) {
@@ -40,7 +40,7 @@ public class FileStorageResolver {
         } else if (accessType.equals(AccessType.INFREQUENT)) {
             rootPath = Paths.get(infrequentAccessSystemPath);
         }
-        Path filePath = rootPath.resolve(fullPath).normalize();
+        Path filePath = rootPath.resolve(fullPath.replace("/","+")).normalize();
         Resource resource = null;
         try {
             resource = new UrlResource(filePath.toUri());
