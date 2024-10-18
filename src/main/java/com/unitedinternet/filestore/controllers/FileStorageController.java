@@ -50,10 +50,10 @@ public class FileStorageController {
         return new ResponseEntity<>("test", HttpStatus.OK);
     }
 
-    @GetMapping(value="/download/**")
+    @GetMapping(value="/**")
     public ResponseEntity<Resource> getFile(HttpServletRequest request) {
         logger.info("downloading file");
-        String urlPath = request.getRequestURL().toString().split("/download")[1];
+        String urlPath = request.getRequestURL().toString().split("/files")[1];
         String fullPath = resolveFullPath(urlPath);
         List<File> files = fileRepository.findByFullPath(fullPath);
         Resource resource = null;
@@ -89,7 +89,7 @@ public class FileStorageController {
             fileStorageResolver.storeFile(fullPath, requestFile);
             File file = new File.Builder().path(path).name(requestFile.getOriginalFilename()).createdDate(LocalDateTime.now()).fullPath(fullPath).accessType(AccessType.DEFAULT).build();
             file = fileRepository.save(file);
-            return ResponseEntity.status(HttpStatus.CREATED).body(new FileStoreResponse(HttpStatus.CREATED.value(),"File uploaded successfully: " + requestFile.getOriginalFilename(), Map.of("id", file.getId().toString())));
+            return ResponseEntity.status(HttpStatus.CREATED).body(new FileStoreResponse(HttpStatus.CREATED.value(),"File uploaded successfully: " + requestFile.getOriginalFilename(), Map.of("id", file.getFullPath().replace("+","/"))));
         } catch (IOException e) {
             logger.error("Exception while storing file",e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new FileStoreResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(),"Could not upload the file: " + e.getMessage()));
@@ -97,22 +97,24 @@ public class FileStorageController {
 
     }
 
-    @PutMapping(value="/{id}", consumes = "multipart/form-data")
-    public ResponseEntity<FileStoreResponse> updateFile(@RequestParam("file") MultipartFile requestFile, @PathVariable Long id) {
-        logger.info("Trying to update for id: {}", id);
+    @PutMapping(value="/**", consumes = "multipart/form-data")
+    public ResponseEntity<FileStoreResponse> updateFile(@RequestParam("file") MultipartFile requestFile, HttpServletRequest request) {
+        String urlPath = request.getRequestURL().toString().split("/files")[1];
+        String fullPath = resolveFullPath(urlPath);
+        logger.info("Trying to update for id: {}", fullPath);
         try {
-            Optional<File> optionalFile = fileRepository.findById(id);
-            if (optionalFile.isEmpty()) {
+            List<File> files = fileRepository.findByFullPath(fullPath);
+            if (files.isEmpty()) {
                 throw new RecordNotFoundException("Record not found");
             } else {
-                File found = optionalFile.get();
+                File found = files.get(0);
                 if (!requestFile.getOriginalFilename().equals(found.getName())) {
                     throw new ValidationException("Update cannot change file name");
                 }
                 fileStorageResolver.storeFile(found.getFullPath(), requestFile);
                 found.setUpdatedDate(LocalDateTime.now());
                 fileRepository.save(found);
-                return ResponseEntity.status(HttpStatus.OK).body(new FileStoreResponse(HttpStatus.OK.value(),"File uploaded successfully: " + requestFile.getOriginalFilename(),Map.of("id", found.getId().toString()) ));
+                return ResponseEntity.status(HttpStatus.OK).body(new FileStoreResponse(HttpStatus.OK.value(),"File uploaded successfully: " + requestFile.getOriginalFilename(),Map.of("id", found.getFullPath().replace("+","/")) ));
             }
         } catch (IOException e) {
             logger.error("Exception while storing file",e);
@@ -121,17 +123,19 @@ public class FileStorageController {
 
     }
 
-    @DeleteMapping(value="/{id}")
-    public ResponseEntity<FileStoreResponse> deleteFile(@PathVariable Long id) {
-        logger.info("Trying to delete for id: {}", id);
+    @DeleteMapping(value="/**")
+    public ResponseEntity<FileStoreResponse> deleteFile(HttpServletRequest request) {
+        String urlPath = request.getRequestURL().toString().split("/files")[1];
+        String fullPath = resolveFullPath(urlPath);
+        logger.info("Trying to delete for id: {}", fullPath);
 
-        Optional<File> optionalFile = fileRepository.findById(id);
-        if (optionalFile.isEmpty()) {
+        List<File> files = fileRepository.findByFullPath(fullPath);
+        if (files.isEmpty()) {
             throw new RecordNotFoundException("Record not found");
         } else {
-            File found = optionalFile.get();
+            File found = files.get(0);
             fileRepository.deleteById(found.getId());
-            return ResponseEntity.status(HttpStatus.OK).body(new FileStoreResponse(HttpStatus.OK.value(),"File deleted successfully",Map.of("id", found.getId().toString()) ));
+            return ResponseEntity.status(HttpStatus.OK).body(new FileStoreResponse(HttpStatus.OK.value(),"File deleted successfully",Map.of("id", found.getFullPath().replace("+","/")) ));
         }
     }
 
@@ -139,7 +143,7 @@ public class FileStorageController {
         logger.info("Validating {} and {}", requestFile.getOriginalFilename().split("\\.")[0], path);
         if (requestFile.isEmpty()) {
             throw new ValidationException("Missing request file");
-        } else if (!(requestFile.getOriginalFilename() != null && requestFile.getOriginalFilename().split("\\.")[0].matches(FILE_NAME_REGEX))) {
+        } else if ((requestFile.getOriginalFilename() != null && (requestFile.getOriginalFilename().length() > 64 || !requestFile.getOriginalFilename().split("\\.")[0].matches(FILE_NAME_REGEX)))) {
             throw new ValidationException("Wrong file name");
         } if (path.contains("/") && path.split("/").length > MAX_PATH_SEGMENTS) {
             throw new ValidationException("Path too long");
