@@ -45,16 +45,15 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
 
     /**
      * This method will pass the token to the authz server and check for its validity
-     * As no authz server is available the code is commented out
+     * As no authz server is available the code is commented out.
+     * Normally the constructor which includes the granted authorities is used.
+     * This way in the session will be a user plus authorities and specific endpoints,
+     * annotated with @PreAuthorize will allow access only if the authn user has the required permissions
+     * As such FileStorageAdminController and FileStorageController may be segregated by user types(regular, admin)
      * @param token the authz token
      * @return the user containing the authorities that should be checked against the targeted endpoint
      */
     private User isTokenValid(String token) {
-        //OauthToken oauthToken = tokenRepository.findById(token).orElse(null);
-
-        //if(oauthToken == null || oauthToken.getExpirationTime().isBefore(LocalDateTime.now())) {
-        //    return null;
-        //}
         return new User(1L);
     }
 

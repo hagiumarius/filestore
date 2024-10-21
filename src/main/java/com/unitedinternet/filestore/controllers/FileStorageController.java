@@ -12,6 +12,7 @@ import jakarta.validation.constraints.NotEmpty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,10 +39,13 @@ public class FileStorageController {
 
     private final FileStorageResolver fileStorageResolver;
 
+    private final ApplicationEventPublisher applicationEventPublisher;
+
     @Autowired
-    public FileStorageController(FileRepository fileRepository, FileStorageResolver fileStorageResolver) {
+    public FileStorageController(FileRepository fileRepository, FileStorageResolver fileStorageResolver, ApplicationEventPublisher applicationEventPublisher) {
         this.fileRepository = fileRepository;
         this.fileStorageResolver = fileStorageResolver;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     @GetMapping(value="/test", produces="application/json", consumes="application/json")
@@ -88,6 +92,7 @@ public class FileStorageController {
             fileStorageResolver.storeFile(fullPath, requestFile);
             File file = new File.Builder().path(path).name(requestFile.getOriginalFilename()).createdDate(LocalDateTime.now()).fullPath(fullPath).accessType(AccessType.DEFAULT).build();
             file = fileRepository.save(file);
+            applicationEventPublisher.publishEvent(new FileOperationEvent(this, file.getFullPath(), FileOperation.CREATED));
             return ResponseEntity.status(HttpStatus.CREATED).body(new FileStoreResponse(HttpStatus.CREATED.value(),"File uploaded successfully: " + requestFile.getOriginalFilename(), Map.of("id", file.getFullPath().replace("+","/"))));
         } catch (IOException e) {
             logger.error("Exception while storing file",e);
@@ -133,6 +138,7 @@ public class FileStorageController {
         } else {
             File found = files.get(0);
             fileRepository.deleteById(found.getId());
+            applicationEventPublisher.publishEvent(new FileOperationEvent(this, found.getFullPath(), FileOperation.DELETED));
             return ResponseEntity.status(HttpStatus.OK).body(new FileStoreResponse(HttpStatus.OK.value(),"File deleted successfully",Map.of("id", found.getFullPath().replace("+","/")) ));
         }
     }
