@@ -2,6 +2,7 @@ package com.unitedinternet.filestore;
 
 import com.unitedinternet.filestore.model.File;
 import com.unitedinternet.filestore.repository.FileRepository;
+import com.unitedinternet.filestore.service.CachingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,9 +40,13 @@ public class FileStorageControllerIntegrationTest {
 
     @Autowired FileRepository fileRepository;
 
+    @Autowired
+    CachingService cachingService;
+
     @BeforeEach
     void clearDatabase(@Autowired FileRepository fileRepository) {
         fileRepository.deleteAll();
+        cachingService.cleanAll();
     }
 
     @Test
