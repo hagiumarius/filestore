@@ -27,15 +27,6 @@ public class AppExceptionHandler
         extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(value
-            = { IllegalArgumentException.class, IllegalStateException.class })
-    protected ResponseEntity<Object> handleConflict(
-            RuntimeException ex, WebRequest request) {
-        String bodyOfResponse = "This should be application specific";
-        return handleExceptionInternal(ex, bodyOfResponse,
-                new HttpHeaders(), HttpStatus.CONFLICT, request);
-    }
-
-    @ExceptionHandler(value
             = { jakarta.persistence.EntityNotFoundException.class})
     protected ResponseEntity<Object> handleEntityNotFound(
             RuntimeException ex, WebRequest request) {

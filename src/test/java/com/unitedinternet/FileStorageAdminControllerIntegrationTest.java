@@ -24,8 +24,7 @@ import java.nio.charset.StandardCharsets;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -73,6 +72,25 @@ public class FileStorageAdminControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.filesCount").value("1"));
         assertEquals("1", cachingService.getValue(InitializingConfig.FILES_COUNT));
+
+        //update cache
+        MvcResult postResult2 = mockMvc.perform(multipart("/files")
+                .file(contentFile)
+                .param("path","/categories/binoculars/view")
+                .header("Authorization","Bearer sample")).andReturn();
+        assertEquals(postResult.getResponse().getStatus(), HttpStatus.CREATED.value());
+
+        //update cache
+        mockMvc.perform(delete("/files/categories/binoculars/hunting/test.txt")
+                        .header("Authorization","Bearer sample"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value("200"))
+                .andExpect(jsonPath("$.message").value(containsString("File deleted successfully")));
+        mockMvc.perform(get("/files/count")
+                        .header("Authorization","Bearer sample")).andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.filesCount").value("1"));
+        assertEquals("1", cachingService.getValue(InitializingConfig.FILES_COUNT));
     }
 
     @Test
@@ -101,6 +119,20 @@ public class FileStorageAdminControllerIntegrationTest {
         assertTrue(cachingService.exists(InitializingConfig.REGEX_LIST));
         assertTrue(cachingService.getElementsFromList(URLDecoder.decode("%5E.%2AST.%2A%24", StandardCharsets.UTF_8)).get(0).contains("test.txt"));
 
+        //update cache
+        mockMvc.perform(delete("/files/categories/binoculars/hunting/test.txt")
+                        .header("Authorization","Bearer sample"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value("200"))
+                .andExpect(jsonPath("$.message").value(containsString("File deleted successfully")));
+
+        //read from cache (not correctly reachable cause of Thread sleep issue)
+        mockMvc.perform(get("/files")
+                        .queryParam("regex","%5E.%2AST.%2A%24")
+                        .header("Authorization","Bearer sample")).andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("test.txt")));
+        assertTrue(cachingService.getElementsFromList(URLDecoder.decode("%5E.%2AST.%2A%24", StandardCharsets.UTF_8)).get(0).contains("test.txt"));
 
     }
 

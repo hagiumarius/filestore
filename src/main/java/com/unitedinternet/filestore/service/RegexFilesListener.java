@@ -31,18 +31,26 @@ public class RegexFilesListener {
     @EventListener
     public void handleFileOperationEvent(FileOperationEvent foe) {
         logger.info("Processing a file operation event of type: {}", foe.getFileOperation());
+        /*Added to overcome various inconsistent errors(e.g ERR Protocol error: invalid bulk length) with working with the local redis cache
+        Probably related to the unorthodox way it was installed on local machine(https://github.com/MicrosoftArchive/redis/releases)
+        */
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+
         if (cachingService.exists(InitializingConfig.REGEX_LIST)) {
             Set<String> regexSet = cachingService.getElementsFromSet(InitializingConfig.REGEX_LIST);
             if (!regexSet.isEmpty()) {
                 if (foe.getFileOperation().equals(FileOperation.CREATED)) {
-                    regexSet.stream().filter(regex -> foe.getFilePath().matches("(?i)" + regex)).forEach(regex -> cachingService.addToList(regex, foe.getFilePath()));
+                    regexSet.stream().filter(regex -> foe.getFilePath().matches("(?i)" + regex)).forEach(regex -> {
+                        logger.info("Adding: {} to {}", foe.getFilePath(), regex);
+                        cachingService.addToList(regex, foe.getFilePath());});
                 } else if (foe.getFileOperation().equals(FileOperation.DELETED)) {
-                    regexSet.stream().filter(regex -> foe.getFilePath().matches(regex)).forEach(regex -> cachingService.removeFromList(regex, foe.getFilePath()));
+                    regexSet.stream().filter(regex -> foe.getFilePath().matches(regex)).forEach(regex -> {
+                        logger.info("Deleting {} from {}", foe.getFilePath(), regex);
+                        cachingService.removeFromList(regex, foe.getFilePath());});
                 }
             }
         }

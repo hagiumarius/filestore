@@ -1,6 +1,5 @@
 package com.unitedinternet.filestore.controllers;
 
-import com.unitedinternet.filestore.model.File;
 import org.springframework.context.ApplicationEvent;
 
 public class FileOperationEvent extends ApplicationEvent {
