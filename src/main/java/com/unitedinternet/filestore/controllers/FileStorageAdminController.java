@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/files")
@@ -52,7 +53,7 @@ public class FileStorageAdminController {
     }
 
     @GetMapping("/count")
-    public ResponseEntity<Long> getFileCount() {
+    public ResponseEntity<Map<String, Long>> getFileCount() {
         long filesCount;
         String filesCountCached = cachingService.getValue(InitializingConfig.FILES_COUNT);
         if (filesCountCached != null) {
@@ -61,7 +62,7 @@ public class FileStorageAdminController {
             filesCount = fileRepository.count();
             cachingService.setKeyValue(InitializingConfig.FILES_COUNT, String.valueOf(filesCount));
         }
-        return new ResponseEntity<>(filesCount, HttpStatus.OK);
+        return new ResponseEntity<>(Map.of("filesCount", filesCount), HttpStatus.OK);
 
     }
 

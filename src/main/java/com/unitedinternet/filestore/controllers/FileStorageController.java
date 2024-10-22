@@ -1,6 +1,5 @@
 package com.unitedinternet.filestore.controllers;
 
-import com.unitedinternet.filestore.exceptions.GenericException;
 import com.unitedinternet.filestore.exceptions.RecordNotFoundException;
 import com.unitedinternet.filestore.exceptions.ValidationException;
 import com.unitedinternet.filestore.model.AccessType;
@@ -24,7 +23,6 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/files")
@@ -67,20 +65,6 @@ public class FileStorageController {
             resource = fileStorageResolver.retrieveFile(urlFilePath, found.getAccessType());
         }
         return new ResponseEntity<>(resource, HttpStatus.OK);
-    }
-
-    @GetMapping(value="/{id}")
-    public ResponseEntity<Resource> getFile(@PathVariable Long id) {
-        logger.info("Trying to get file for id: {}", id);
-
-        Optional<File> optionalFile = fileRepository.findById(id);
-        if (optionalFile.isEmpty()) {
-            throw new RecordNotFoundException("Record not found");
-        } else {
-            File found = optionalFile.get();
-            Resource resource = fileStorageResolver.retrieveFile(found.getFullPath(), found.getAccessType());
-            return new ResponseEntity<>(resource, HttpStatus.OK);
-        }
     }
 
     @PostMapping(consumes = "multipart/form-data")
@@ -154,7 +138,7 @@ public class FileStorageController {
         }
         boolean wrongPathSegment = Arrays.stream(path.split("/")).anyMatch(e -> !e.matches(FILE_NAME_REGEX));
         if (wrongPathSegment) {
-            throw new ValidationException("Wrong path segment");
+            throw new ValidationException("Wrong path segment name");
         }
     }
 
