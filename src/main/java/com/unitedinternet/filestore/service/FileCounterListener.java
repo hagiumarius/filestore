@@ -18,7 +18,7 @@ public class FileCounterListener {
 
     private static final Logger logger = LoggerFactory.getLogger(FileCounterListener.class);
 
-    private CachingService cachingService;
+    private final CachingService cachingService;
 
     @Autowired
     public FileCounterListener(CachingService cachingService) {

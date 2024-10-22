@@ -1,6 +1,5 @@
-package com.unitedinternet;
+package com.unitedinternet.filestore;
 
-import com.unitedinternet.filestore.FilestoreApplication;
 import com.unitedinternet.filestore.config.InitializingConfig;
 import com.unitedinternet.filestore.repository.FileRepository;
 import com.unitedinternet.filestore.service.CachingService;

@@ -1,6 +1,5 @@
-package com.unitedinternet;
+package com.unitedinternet.filestore;
 
-import com.unitedinternet.filestore.FilestoreApplication;
 import com.unitedinternet.filestore.model.File;
 import com.unitedinternet.filestore.repository.FileRepository;
 import org.junit.jupiter.api.BeforeEach;

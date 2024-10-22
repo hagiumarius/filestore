@@ -48,7 +48,7 @@ public class RegexFilesListener {
                         logger.info("Adding: {} to {}", foe.getFilePath(), regex);
                         cachingService.addToList(regex, foe.getFilePath());});
                 } else if (foe.getFileOperation().equals(FileOperation.DELETED)) {
-                    regexSet.stream().filter(regex -> foe.getFilePath().matches(regex)).forEach(regex -> {
+                    regexSet.stream().filter(regex -> foe.getFilePath().matches("(?i)" + regex)).forEach(regex -> {
                         logger.info("Deleting {} from {}", foe.getFilePath(), regex);
                         cachingService.removeFromList(regex, foe.getFilePath());});
                 }
