@@ -146,6 +146,7 @@ public class FileStorageController {
         } else {
             File found = files.get(0);
             fileRepository.deleteById(found.getId());
+            fileStorageResolver.deleteFile(found.getFullPath(), found.getAccessType());
             //publish file deletion to enable downstream async processing
             applicationEventPublisher.publishEvent(new FileOperationEvent(this, found.getFullPath(), FileOperation.DELETED));
             return ResponseEntity.status(HttpStatus.OK).body(new FileStoreResponse(HttpStatus.OK.value(),"File deleted successfully",Map.of("id", found.getFullPath().replace("+","/")) ));

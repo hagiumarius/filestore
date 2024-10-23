@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -65,6 +66,22 @@ public class FileStorageResolver {
             return resource;
         }
 
+    }
+
+    public void deleteFile(String path, AccessType accessType) {
+        Path rootPath = null;
+        if (accessType.equals(AccessType.DEFAULT)) {
+            rootPath = Paths.get(defaultSystemPath);
+        } else if (accessType.equals(AccessType.INFREQUENT)) {
+            rootPath = Paths.get(infrequentAccessSystemPath);
+        }
+        Path toBeDeleted = rootPath.resolve(path.replace("/","+")).normalize();
+        try {
+            Files.delete(toBeDeleted);
+        } catch (IOException e) {
+            logger.error("Exception while deleting file", e);
+            throw new GenericException("Exception while deleting file");
+        }
     }
 
 }
