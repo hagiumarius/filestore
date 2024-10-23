@@ -20,7 +20,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
-Advice used for general exception handling
+ Advice used for general exception handling
+ As Controllers and Service throw exceptions this is the layer the catches them
+ and can transform them in user-friendly exceptions
  */
 @RestControllerAdvice
 public class AppExceptionHandler

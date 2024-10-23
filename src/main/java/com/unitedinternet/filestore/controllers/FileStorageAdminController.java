@@ -18,6 +18,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Controller to be used by admins(operators) to obtain general informations about the stored data
+ */
 @RestController
 @RequestMapping("/files")
 public class FileStorageAdminController {
@@ -33,15 +36,20 @@ public class FileStorageAdminController {
         this.cachingService = cachingService;
     }
 
+    /**
+     * Endpoint to fetch all file paths matching the presented regex
+     * @param regex as url encoded
+     * @return
+     */
     @GetMapping()
     public ResponseEntity<List<String>> getFile(@RequestParam(value = "regex") String regex) {
-
+        //as the regex may contain characters not allowed in the url, the regex should be presented url encoded
         String decodedRegex = URLDecoder.decode(regex, StandardCharsets.UTF_8);
         List<String> foundPaths = null;
         logger.info("trying to find files by regex {}", decodedRegex);
-        if (cachingService.exists(decodedRegex)) {
+        if (cachingService.exists(decodedRegex)) {//cache hit
             foundPaths = cachingService.getElementsFromList(decodedRegex);
-        } else {
+        } else {//query the db (and add to cache)
             List<File> foundList = fileRepository.findAllFilesMatchingRegex(decodedRegex);
             foundPaths = foundList.stream().map(e -> e.getFullPath()).toList();
             foundPaths.stream().forEach(e -> cachingService.addToList(decodedRegex, e));
@@ -52,13 +60,17 @@ public class FileStorageAdminController {
 
     }
 
+    /**
+     * Endpoint that will count the number of files in the system
+     * @return
+     */
     @GetMapping("/count")
     public ResponseEntity<Map<String, Long>> getFileCount() {
         long filesCount;
         String filesCountCached = cachingService.getValue(InitializingConfig.FILES_COUNT);
-        if (filesCountCached != null) {
+        if (filesCountCached != null) {//cache hit
             filesCount = Long.parseLong(filesCountCached);
-        } else {
+        } else {//count from db + cache add
             filesCount = fileRepository.count();
             cachingService.setKeyValue(InitializingConfig.FILES_COUNT, String.valueOf(filesCount));
         }

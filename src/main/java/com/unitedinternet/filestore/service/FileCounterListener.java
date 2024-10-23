@@ -10,9 +10,10 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Class used to process member events (create, update)
+ * Class used to process member events (create, update) in relation to the counter feature
+ * Any new file added will just increase the atomic counter in the cache(under redis)
+ * Any file deleted will decrease it
  */
-
 @Component
 public class FileCounterListener {
 

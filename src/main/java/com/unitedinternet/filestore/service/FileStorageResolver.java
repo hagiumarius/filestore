@@ -16,14 +16,25 @@ import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+/**
+ * Class that will handle the storage part of the files.
+ * Should be considered to operate on 2 locations, one for fast access(for the most requested files)
+ * and another one for slower access(for the infrequent requested files)
+ */
 @Component
 public class FileStorageResolver {
 
     Logger logger = LoggerFactory.getLogger(FileStorageResolver.class);
 
+    /**
+     * Default location, assume a low latency disc location
+     */
     @Value("${upload.defaultPath}")
     private String defaultSystemPath;
 
+    /**
+     * infrequent location, assume a high latency disc location
+     */
     @Value("${upload.infrequentAccessPath}")
     private String infrequentAccessSystemPath;
 

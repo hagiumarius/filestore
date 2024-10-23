@@ -12,7 +12,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 /**
- * SecurityConfig necessary to inject the BearerTokenFilter
+ * SecurityConfig necessary to inject the BearerTokenFilter and to allow usage of h2 console
  */
 @Configuration
 @EnableWebSecurity()

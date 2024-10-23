@@ -6,6 +6,10 @@ import redis.clients.jedis.Jedis;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Service that will interface the caching layer, via the jedis client of the redis
+ * As data structures it will use String, Lists and Sets
+ */
 @Service
 public class CachingService {
 

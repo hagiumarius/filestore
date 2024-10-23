@@ -24,6 +24,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Main controller to provision the rest operations available on the application
+ */
 @RestController
 @RequestMapping("/files")
 public class FileStorageController {
@@ -46,12 +49,14 @@ public class FileStorageController {
         this.applicationEventPublisher = applicationEventPublisher;
     }
 
-    @GetMapping(value="/test", produces="application/json", consumes="application/json")
-    public ResponseEntity<String> getTest() {
-
-        return new ResponseEntity<>("test", HttpStatus.OK);
-    }
-
+    /**
+     * Endpoint to fetch the file previously stored.
+     * The key is the logical path of the file, including it's name
+     * url of form: files/categories/binoculars/hunting/HomeworkRESTFileService.pdf
+     * where categories/binoculars/hunting/HomeworkRESTFileService.pdf is the id
+     * @param request we need the full request to extract the variable path segment id
+     * @return
+     */
     @GetMapping(value="/**")
     public ResponseEntity<Resource> getFile(HttpServletRequest request) {
         logger.info("downloading file");
@@ -67,6 +72,12 @@ public class FileStorageController {
         return new ResponseEntity<>(resource, HttpStatus.OK);
     }
 
+    /**
+     * Endpoint to upload the file in the service
+     * @param requestFile the multipart file
+     * @param path the logical path, which appended before the original file name will give the id of the data record
+     * @return
+     */
     @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<FileStoreResponse> createFile(@RequestParam("file") MultipartFile requestFile, @RequestParam("path") @NotEmpty String path) {
         logger.info("Trying to upload for path: {}", path);
@@ -76,6 +87,7 @@ public class FileStorageController {
             fileStorageResolver.storeFile(fullPath, requestFile);
             File file = new File.Builder().path(path).name(requestFile.getOriginalFilename()).createdDate(LocalDateTime.now()).fullPath(fullPath).accessType(AccessType.DEFAULT).build();
             file = fileRepository.save(file);
+            //publish file creation event to enable downstream async processing
             applicationEventPublisher.publishEvent(new FileOperationEvent(this, file.getFullPath(), FileOperation.CREATED));
             return ResponseEntity.status(HttpStatus.CREATED).body(new FileStoreResponse(HttpStatus.CREATED.value(),"File uploaded successfully: " + requestFile.getOriginalFilename(), Map.of("id", file.getFullPath().replace("+","/"))));
         } catch (IOException e) {
@@ -85,6 +97,13 @@ public class FileStorageController {
 
     }
 
+    /**
+     * Update endpoint, the id being similar to get's one
+     * Only allows for update of the file updated, the name and path have to stay the same, as are part of the key
+     * @param requestFile the file to be uploaded
+     * @param request we need the full request to extract the variable path segment id
+     * @return
+     */
     @PutMapping(value="/**", consumes = "multipart/form-data")
     public ResponseEntity<FileStoreResponse> updateFile(@RequestParam("file") MultipartFile requestFile, HttpServletRequest request) {
         String urlFilePath = request.getRequestURL().toString().split("/files")[1];
@@ -111,6 +130,11 @@ public class FileStorageController {
 
     }
 
+    /**
+     * Endpoint to enable deleting of file.
+     * @param request we need the full request to extract the variable path segment id
+     * @return
+     */
     @DeleteMapping(value="/**")
     public ResponseEntity<FileStoreResponse> deleteFile(HttpServletRequest request) {
         String urlFilePath = request.getRequestURL().toString().split("/files")[1];
@@ -122,11 +146,17 @@ public class FileStorageController {
         } else {
             File found = files.get(0);
             fileRepository.deleteById(found.getId());
+            //publish file deletion to enable downstream async processing
             applicationEventPublisher.publishEvent(new FileOperationEvent(this, found.getFullPath(), FileOperation.DELETED));
             return ResponseEntity.status(HttpStatus.OK).body(new FileStoreResponse(HttpStatus.OK.value(),"File deleted successfully",Map.of("id", found.getFullPath().replace("+","/")) ));
         }
     }
 
+    /**
+     * Validates the upload file and path
+     * @param path
+     * @param requestFile
+     */
     private void validateUpload(String path, MultipartFile requestFile) {
         logger.info("Validating {} and {}", requestFile.getOriginalFilename().split("\\.")[0], path);
         if (requestFile.isEmpty()) {
@@ -142,6 +172,12 @@ public class FileStorageController {
         }
     }
 
+    /**
+     * Resolves the full path for the data record
+     * @param path
+     * @param fileName
+     * @return
+     */
     private String resolveFullPath(String path, String fileName) {
         StringBuilder storagefileName = new StringBuilder();
         if (!path.startsWith("/")) {

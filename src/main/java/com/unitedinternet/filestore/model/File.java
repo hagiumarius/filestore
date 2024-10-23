@@ -5,10 +5,17 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+/**
+ * Main persisted record, for now in a h2 database.
+ * Later the persistence can be changed easily if the rdbms paradigm remains in place
+ */
 @Table(name = "files", indexes = @Index(columnList = "fullPath", name = "fullPathIndex", unique = true))
 @Entity
 public class File {
 
+    /**
+     * just for convenience
+     */
     @Id
     @GeneratedValue
     private Long id;
@@ -17,6 +24,9 @@ public class File {
 
     private String name;
 
+    /**
+     * Actual logical id of the table
+     */
     private String fullPath;
 
     @Enumerated(EnumType.STRING)

@@ -2,6 +2,9 @@ package com.unitedinternet.filestore.controllers;
 
 import org.springframework.context.ApplicationEvent;
 
+/**
+ * Event to be published when a file operation happens
+ */
 public class FileOperationEvent extends ApplicationEvent {
 
     private final String filePath;

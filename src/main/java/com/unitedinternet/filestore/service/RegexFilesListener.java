@@ -9,13 +9,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Set;
 
 /**
- * Class used to process member events (create, update)
+ * Class used to process member events (create, update) in relation to regex file finder
  */
-
 @Component
 public class RegexFilesListener {
 
@@ -28,6 +26,13 @@ public class RegexFilesListener {
         this.cachingService = cachingService;
     }
 
+    /**
+     * If a file is added and matches an already registered(in cache) regex
+     * it will be added to the matching files of that regex, no db query will be needed for that regex
+     * Of course, if the file is deleted, it will also be removed from the cached regex file list
+     * This way db queries are needed only for new regexes
+     * @param foe
+     */
     @EventListener
     public void handleFileOperationEvent(FileOperationEvent foe) {
         logger.info("Processing a file operation event of type: {}", foe.getFileOperation());
@@ -39,11 +44,16 @@ public class RegexFilesListener {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-
         if (cachingService.exists(InitializingConfig.REGEX_LIST)) {
             Set<String> regexSet = cachingService.getElementsFromSet(InitializingConfig.REGEX_LIST);
             if (!regexSet.isEmpty()) {
                 if (foe.getFileOperation().equals(FileOperation.CREATED)) {
+                    /**
+                     * Be careful as we have 2 ways of validating regex matchings,
+                     * one in rdbms layer(see the below native query)
+                     * and another one in the service layer(@link com.unitedinternet.filestore.repository.FileRepository#findAllFilesMatchingRegex())
+                     * They both have to match in applying regex specifications
+                     */
                     regexSet.stream().filter(regex -> foe.getFilePath().matches("(?i)" + regex)).forEach(regex -> {
                         logger.info("Adding: {} to {}", foe.getFilePath(), regex);
                         cachingService.addToList(regex, foe.getFilePath());});

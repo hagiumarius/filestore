@@ -50,15 +50,6 @@ public class FileStorageControllerIntegrationTest {
     }
 
     @Test
-    public void givenTEST_whenGet_thenReturnsOk() throws Exception {
-        MvcResult mvcResult = this.mockMvc.perform(get("/files/test")
-                        .contentType("application/json")
-                        .header("Authorization","Bearer sample"))
-                .andDo(print()).andExpect(status().isOk())
-                .andReturn();
-    }
-
-    @Test
     public void givenPOSTMultipartFile_whenPostWithRequestPart_thenReturnsOK() throws Exception {
         MockMultipartFile contentFile = new MockMultipartFile("file", "test.txt", MediaType.TEXT_PLAIN_VALUE, "Whatever Content".getBytes());
         mockMvc.perform(multipart("/files")

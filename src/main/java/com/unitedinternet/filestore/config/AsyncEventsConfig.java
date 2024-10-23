@@ -7,7 +7,7 @@ import org.springframework.context.event.SimpleApplicationEventMulticaster;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 
 /**
- * Configuration to make the event handling asynchronous
+ * Configuration to make the event handling scenarios asynchronous
  */
 @Configuration
 public class AsyncEventsConfig {
