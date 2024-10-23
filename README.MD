@@ -18,6 +18,7 @@ CRUD Operations possible are:
 Other more general operations are in the admin controller:
 - get a file count
 - get files by regex
+
 Both endpoints are using a redis cache(locally installed for this POC) for faster retrieval of data.
 When a file is added/deleted, asynchronously a listener picks the event and does the relevant processing 
 on the caching services, either adding or evicting, to keep the cache up to date, once it has been
